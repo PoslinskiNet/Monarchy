@@ -45,4 +45,8 @@ Monarchy.configure do |config|
   # :revoke_access - after revoking the last role from user's member
   #                  remove the member, and all members bellow which belongs to the user
   config.revoke_strategy = :revoke_member # symbol
+
+  # Allows to turn off Monarchy actors for speeding up the specs
+  # (it will act as user has an access to everything)
+  config.passthrough = false
 end

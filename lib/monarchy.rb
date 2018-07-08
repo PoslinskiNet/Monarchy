@@ -16,10 +16,20 @@ require 'monarchy/acts_as_resource'
 require 'monarchy/acts_as_hierarchy'
 
 module Monarchy
-  cattr_accessor :resource_classes
+  cattr_accessor :resource_classes, :passthrough
+
+  attr_accessor :passthrough
 
   def self.resource_classes
     @resource_classes ||= []
+  end
+
+  def self.passthrough=(value)
+    @passthrough = value
+  end
+
+  def self.passthrough?
+    @passthrough || Monarchy.configuration.passthrough
   end
 
   include Configurations
@@ -32,6 +42,7 @@ module Monarchy
     config.revoke_strategy = :revoke_member
     config.accessible_for_options.parent_access = false
     config.accessible_for_options.inherited_roles = []
+    config.passthrough = false
   end
 
   not_configured do |property|

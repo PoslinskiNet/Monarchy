@@ -90,6 +90,7 @@ module Monarchy
       end
 
       def ensure_hierarchy(force = false)
+        return nil if Monarchy.passthrough?
         return nil unless self.class.automatic_hierarchy || force
 
         self.hierarchy ||= Monarchy.hierarchy_class.create(
@@ -122,12 +123,14 @@ module Monarchy
       end
 
       def children_resources
+        return self if Monarchy.passthrough?
         resource_hierarchy = Monarchy.hierarchy_class.hierarchies_for(self)
         hierarchy_children = Monarchy.hierarchy_class.children_for(resource_hierarchy)
         hierarchy_children.includes(:resource).map(&:resource)
       end
 
       def parent_resource
+        return self if Monarchy.passthrough?
         resource_hierarchy = Monarchy.hierarchy_class.hierarchies_for(self)
         hierarchy_parent = Monarchy.hierarchy_class.parents_for(resource_hierarchy)
         hierarchy_parent.first&.resource

@@ -31,38 +31,45 @@ module Monarchy
 
     module InstanceMethods
       def roles_for(resource, inheritance = true)
+        return [] if Monarchy.passthrough?
         Monarchy::Validators.resource(resource, false, false)
         accessible_roles_for(resource, inheritance)
       end
 
       def member_for(resource)
+        return true if Monarchy.passthrough?
         Monarchy::Validators.resource(resource)
         resource.hierarchy.members.where(monarchy_members: { user_id: id }).first
       end
 
       def grant(*role_names, resource)
+        return if Monarchy.passthrough?
         ActiveRecord::Base.transaction do
           grant_or_create_member(role_names, resource)
         end
       end
 
       def revoke_access(resource, hierarchies = nil)
+        return true if Monarchy.passthrough?
         Monarchy::Validators.resource(resource)
         hierarchies ||= resource.hierarchy.self_and_descendants
         members_for(hierarchies).delete_all
       end
 
       def revoke_role(role_name, resource)
+        return true if Monarchy.passthrough?
         revoking_role(role_name, resource)
       end
 
       def revoke_role!(role_name, resource)
+        return true if Monarchy.passthrough?
         revoking_role(role_name, resource, Monarchy.configuration.revoke_strategy)
       end
 
       private
 
       def accessible_roles_for(resource, inheritnce)
+        return [] if Monarchy.passthrough?
         return Monarchy.role_class.none unless resource.persisted?
 
         accessible_roles = if inheritnce
@@ -76,6 +83,7 @@ module Monarchy
       end
 
       def resource_and_inheritance_roles(resource)
+        resource.all if Monarchy.passthrough?
         Monarchy.role_class.where(id:
           Monarchy.role_class
             .joins('INNER JOIN monarchy_members_roles ON monarchy_roles.id = monarchy_members_roles.role_id')
@@ -111,6 +119,7 @@ module Monarchy
       end
 
       def revoking_role(role_name, resource, strategy = nil)
+        return if Monarchy.passthrough?
         Monarchy::Validators.resource(resource)
         role = Monarchy::Validators.role_name(role_name)
 
@@ -123,6 +132,7 @@ module Monarchy
       end
 
       def revoking_last_role(role, resource, strategy)
+        return if Monarchy.passthrough?
         case strategy
         when :revoke_access
           revoke_access(resource)
@@ -137,6 +147,7 @@ module Monarchy
       end
 
       def grant_or_create_member(role_names, resource)
+        return if Monarchy.passthrough?
         Monarchy::Validators.resource(resource)
         roles = Monarchy::Validators.role_names(role_names)
         member = member_for(resource)
@@ -152,19 +163,23 @@ module Monarchy
       end
 
       def inherited_default_role
+        return Monarchy.role_class.new if Monarchy.passthrough?
         @inherited_default_role ||= Monarchy.role_class.find_by(name: Monarchy.configuration.inherited_default_role)
       end
 
       def members_for(hierarchies)
+        return Monarchy.member_class.new if Monarchy.passthrough?
         Monarchy.member_class.where(hierarchy: hierarchies, user_id: id)
       end
 
       def descendants_for(resources)
+        return Monarchy.hierarchy_class.new if Monarchy.passthrough?
         resources_hierarchies = Monarchy.hierarchy_class.hierarchies_for(resources).select(:id)
         Monarchy.hierarchy_class.descendants_for(resources_hierarchies)
       end
 
       def ancestors_for(resources)
+        return Monarchy.hierarchy_class.new if Monarchy.passthrough?
         resources_hierarchies = Monarchy.hierarchy_class.hierarchies_for(resources).select(:id)
         Monarchy.hierarchy_class.ancestors_for(resources_hierarchies)
       end

@@ -27,16 +27,19 @@ module Monarchy
 
     module ClassMethods
       def hierarchies_for(resources)
+        return resources if Monarchy.passthrough?
         check_argument_type(resources)
         resources ? unscoped.where(resource: resources) : none
       end
 
       def children_for(hierarchies)
+        return hierarchies if Monarchy.passthrough?
         check_argument_type(hierarchies)
         hierarchies ? unscoped.where(parent: hierarchies) : none
       end
 
       def parents_for(hierarchies)
+        return hierarchies if Monarchy.passthrough?
         check_argument_type(hierarchies)
         return none unless hierarchies
 
@@ -46,11 +49,13 @@ module Monarchy
       end
 
       def descendants_for(hierarchies)
+        return hierarchies if Monarchy.passthrough?
         check_argument_type(hierarchies)
         hierarchies ? unscoped.with_ancestor(hierarchies) : none
       end
 
       def ancestors_for(hierarchies)
+        return hierarchies if Monarchy.passthrough?
         check_argument_type(hierarchies)
         return none unless hierarchies
 
@@ -85,10 +90,12 @@ module Monarchy
       # rubocop:disable all
       def include_scopes
         scope :in, (lambda do |hierarchy, descendants = true|
+          return all if Monarchy.passthrough?
           where(id: descendants ? descendants_for(hierarchy) : children_for(hierarchy))
         end)
 
         scope :accessible_for, (lambda do |user, options = {}|
+          return all if Monarchy.passthrough?
           user_id = user.id
 
           custom_options = accessible_for_options(options)
