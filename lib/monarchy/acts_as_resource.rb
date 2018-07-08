@@ -108,13 +108,22 @@ module Monarchy
       private
 
       def assign_parent(force = false)
+        return if Monarchy.passthrough?
         parentize = self.class.parentize_name
         return unless parentize
 
         keys = relation_keys(parentize)
-        was_changed = saved_changes[keys[:foreign_key]] || saved_changes[keys[:foreign_type]]
+
+        was_changed = some_changes?(keys)
         Monarchy::Validators.resource(send(parentize), true, false)
         self.parent = send(parentize) if was_changed || force
+      end
+
+      def some_changes?(keys)
+        changes.try(:[], keys[:foreign_key]) ||
+        changes.try(:[], keys[:foreign_type]) ||
+        saved_changes.try(:[], keys[:foreign_key]) ||
+        saved_changes.try(:[], keys[:foreign_type])
       end
 
       def relation_keys(relation_name)
