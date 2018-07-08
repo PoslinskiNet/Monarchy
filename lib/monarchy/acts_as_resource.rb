@@ -90,14 +90,14 @@ module Monarchy
       end
 
       def ensure_hierarchy(force = false)
-        return nil if Monarchy.passthrough?
         return nil unless self.class.automatic_hierarchy || force
 
-        self.hierarchy ||= Monarchy.hierarchy_class.create(
+        action = Monarchy.passthrough? ? :new : :create
+        self.hierarchy ||= Monarchy.hierarchy_class.send(action, {
           resource: self,
           parent: parent.try(:hierarchy),
-          children: children_hierarchies(children)
-        )
+          children: children_hierarchies(children) || []
+        })
       end
 
       def accessible_for(user, options = {})
@@ -120,10 +120,11 @@ module Monarchy
       end
 
       def some_changes?(keys)
-        changes.try(:[], keys[:foreign_key]) ||
-        changes.try(:[], keys[:foreign_type]) ||
-        saved_changes.try(:[], keys[:foreign_key]) ||
-        saved_changes.try(:[], keys[:foreign_type])
+        if respond_to?(:saved_changes)
+          saved_changes[keys[:foreign_key]] || saved_changes[keys[:foreign_type]]
+        else
+          changes[keys[:foreign_key]] || changes[keys[:foreign_type]]
+        end
       end
 
       def relation_keys(relation_name)
@@ -146,8 +147,8 @@ module Monarchy
       end
 
       def children_hierarchies(array)
-        array&.compact!
-        Array(array).map { |resource| Monarchy::Validators.resource(resource).hierarchy }
+        Array(array)&.compact!
+        Array(array).map { |resource| Monarchy::Validators.resource(resource).hierarchy }.compact!
       end
     end
   end
